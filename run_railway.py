@@ -29,11 +29,17 @@ def main():
 
     print("✅ Bot thread started")
 
-    # Запускаем Flask приложение
+    # Запускаем Flask приложение (адаптивный порт для разных хостингов)
     port = int(os.environ.get('PORT', 5000))
     print(f"🌐 Starting web server on port {port}")
 
-    app.run(host='0.0.0.0', port=port, debug=False)
+    # Для production используем production WSGI сервер
+    if os.environ.get('ENVIRONMENT') == 'production':
+        from waitress import serve
+        print("🍽️  Using Waitress WSGI server for production")
+        serve(app, host='0.0.0.0', port=port)
+    else:
+        app.run(host='0.0.0.0', port=port, debug=False)
 
 if __name__ == '__main__':
     main()

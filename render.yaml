@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: telegram-bot
+    runtime: python3
+    buildCommand: pip install -r requirements.txt
+    startCommand: python run_railway.py
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.0
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: YOOKASSA_SHOP_ID
+        sync: false
+      - key: YOOKASSA_SECRET_KEY
+        sync: false
+      - key: ENVIRONMENT
+        value: production
+      - key: DEBUG
+        value: false
+      - key: WEBHOOK_HOST
+        fromService:
+          type: web
+          name: telegram-bot
+          property: host
+      - key: WEBHOOK_PORT
+        value: 10000
