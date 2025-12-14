@@ -206,10 +206,10 @@ def process_webhook_payment_succeeded(payment_data: dict) -> bool:
             logger.error("No payment_id in webhook metadata")
             return False
 
-        # Проверяем статус платежа
-        yookassa_payment = Payment.find_one(payment_data['id'])
-        if yookassa_payment.status != 'succeeded':
-            logger.warning(f"Payment {payment_id} status is {yookassa_payment.status}, not succeeded")
+        # Проверяем, что YooKassa сообщает о успешном платеже
+        event = payment_data.get('event')
+        if event != 'payment.succeeded':
+            logger.warning(f"Unexpected event: {event}, expected payment.succeeded")
             return False
 
         # Получаем информацию о платеже из нашей БД
