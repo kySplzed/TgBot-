@@ -116,6 +116,17 @@ def yookassa_webhook():
 
         if event == 'payment.succeeded':
             # Платеж успешно завершен
+            logger.info(f"Processing payment.succeeded event")
+
+            # Отладка извлечения metadata
+            logger.info(f"Full data structure: {data}")
+            object_data = data.get('object', {})
+            logger.info(f"Object data: {object_data}")
+            metadata = object_data.get('metadata', {})
+            logger.info(f"Metadata: {metadata}")
+            payment_id = metadata.get('payment_id')
+            logger.info(f"Extracted payment_id: {payment_id}")
+
             if process_webhook_payment_succeeded(data):
                 # Создаем временный экземпляр бота для отправки уведомления
                 try:
