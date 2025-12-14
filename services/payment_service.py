@@ -97,10 +97,23 @@ def create_payment(bot, call, plan: str) -> Optional[str]:
 def process_payment_success(bot, payment_id: str) -> bool:
     """Обработка успешного платежа. Возвращает True при успехе."""
 
+    # Сначала проверяем активные платежи
     payment_info = active_payments.get(payment_id)
+
+    # Если не нашли в активных, ищем в базе данных
     if not payment_info:
-        logger.warning(f"Payment {payment_id} not found in active payments")
-        return False
+        payment = get_payment(payment_id)
+        if payment and payment.status == 'pending':
+            # Создаем информацию о платеже для обработки
+            payment_info = {
+                'user_id': payment.user_id,
+                'plan': payment.plan,
+                'chat_id': payment.user_id,  # Используем user_id как chat_id для простоты
+                'message_id': None  # Не можем определить message_id из БД
+            }
+        else:
+            logger.warning(f"Payment {payment_id} not found in active payments or database")
+            return False
 
     # Обновляем статус платежа в БД
     confirmed_at = datetime.now().isoformat()
@@ -113,13 +126,21 @@ def process_payment_success(bot, payment_id: str) -> bool:
     markup = get_success_keyboard()
 
     try:
-        bot.edit_message_text(chat_id=payment_info['chat_id'],
-                            message_id=payment_info['message_id'],
-                            text=success_text,
-                            parse_mode='Markdown',
-                            reply_markup=markup)
+        if payment_info.get('message_id'):
+            # Если есть message_id, редактируем сообщение
+            bot.edit_message_text(chat_id=payment_info['chat_id'],
+                                message_id=payment_info['message_id'],
+                                text=success_text,
+                                parse_mode='Markdown',
+                                reply_markup=markup)
+        else:
+            # Если нет message_id, отправляем новое сообщение
+            bot.send_message(chat_id=payment_info['chat_id'],
+                           text=success_text,
+                           parse_mode='Markdown',
+                           reply_markup=markup)
     except Exception as e:
-        logger.error(f"Error updating payment message: {e}")
+        logger.error(f"Error sending payment success message: {e}")
 
     # Активируем подписку
     try:
@@ -128,8 +149,9 @@ def process_payment_success(bot, payment_id: str) -> bool:
     except Exception as e:
         logger.error(f"Error activating subscription: {e}")
 
-    # Удаляем из активных платежей
-    del active_payments[payment_id]
+    # Удаляем из активных платежей, если он там был
+    if payment_id in active_payments:
+        del active_payments[payment_id]
 
     return True
 

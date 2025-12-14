@@ -3,7 +3,7 @@
 from datetime import datetime, timedelta
 from typing import Optional
 from config import PLANS
-from db.database import get_user_subscription, save_subscription, check_expired_subscriptions
+from db.database import get_user_subscription as db_get_user_subscription, save_subscription, check_expired_subscriptions as db_check_expired_subscriptions
 from db.models import Subscription
 
 def activate_subscription(user_id: int, plan: str, payment_id: Optional[str] = None) -> Subscription:
@@ -12,7 +12,7 @@ def activate_subscription(user_id: int, plan: str, payment_id: Optional[str] = N
     plan_info = PLANS[plan]
 
     # Проверяем, есть ли уже активная подписка
-    existing_subscription = get_user_subscription(user_id)
+    existing_subscription = db_get_user_subscription(user_id)
 
     if existing_subscription and existing_subscription.status == 'active':
         # Продлеваем существующую подписку
@@ -41,11 +41,11 @@ def activate_subscription(user_id: int, plan: str, payment_id: Optional[str] = N
 
 def get_user_subscription(user_id: int) -> Optional[Subscription]:
     """Получение информации о подписке пользователя"""
-    return get_user_subscription(user_id)
+    return db_get_user_subscription(user_id)
 
 def cancel_subscription(user_id: int) -> bool:
     """Отмена подписки пользователя"""
-    subscription = get_user_subscription(user_id)
+    subscription = db_get_user_subscription(user_id)
     if subscription and subscription.status == 'active':
         subscription.status = 'canceled'
         subscription.auto_renewal = False
@@ -86,4 +86,4 @@ def get_subscription_status_text(subscription: Optional[Subscription]) -> str:
 
 def check_expired_subscriptions() -> int:
     """Проверка и обновление истекших подписок. Возвращает количество обновленных подписок."""
-    return check_expired_subscriptions()
+    return db_check_expired_subscriptions()

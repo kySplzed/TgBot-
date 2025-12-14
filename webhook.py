@@ -1,26 +1,95 @@
 # webhook.py - обработка webhook уведомлений от YooKassa
 
 import json
+from datetime import datetime
 from flask import Flask, request, jsonify
-from services.payment_service import process_webhook_payment_succeeded, process_webhook_payment_failed
+from services.payment_service import process_webhook_payment_succeeded, process_webhook_payment_failed, process_payment_success
 from utils.logger import get_logger
-from config import WEBHOOK_HOST, WEBHOOK_PORT, DEBUG
+from config import WEBHOOK_HOST, WEBHOOK_PORT, DEBUG, API_TOKEN
 
 logger = get_logger(__name__)
 
 app = Flask(__name__)
 
-@app.route('/yookassa/webhook', methods=['POST'])
+@app.route('/', methods=['GET'])
+def index():
+    """Главная страница сервера с информацией о доступных эндпоинтах"""
+    current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    return f'''
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Telegram Bot Webhook Server</title>
+        <style>
+            body {{ font-family: Arial, sans-serif; margin: 40px; background: #f5f5f5; }}
+            .container {{ max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }}
+            h1 {{ color: #2c3e50; }}
+            .endpoint {{ background: #ecf0f1; padding: 15px; margin: 10px 0; border-left: 4px solid #3498db; }}
+            .method {{ font-weight: bold; color: #e74c3c; }}
+            .warning {{ background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin: 20px 0; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>🚀 Telegram Bot Webhook Server</h1>
+            <p>Сервер для обработки webhook уведомлений от YooKassa</p>
+
+            <div class="warning">
+                <strong>⚠️ Внимание:</strong> Это development сервер. В продакшене используйте WSGI сервер (gunicorn, uwsgi).
+            </div>
+
+            <h2>📋 Доступные эндпоинты:</h2>
+
+            <div class="endpoint">
+                <span class="method">GET</span> <code>/</code><br>
+                <strong>Главная страница</strong> - эта страница
+            </div>
+
+            <div class="endpoint">
+                <span class="method">GET</span> <code>/health</code><br>
+                <strong>Health check</strong> - проверка работоспособности сервера
+            </div>
+
+            <div class="endpoint">
+                <span class="method">POST</span> <code>/yookassa/webhook</code><br>
+                <strong>Webhook YooKassa</strong> - обработка платежных уведомлений
+            </div>
+
+            <div class="endpoint">
+                <span class="method">GET</span> <code>/test-payment/<user_id>/<plan></code><br>
+                <strong>Тест платежа</strong> - имитация успешного платежа (для тестирования)
+            </div>
+
+            <h2>🧪 Тестирование:</h2>
+            <p>Попробуйте:</p>
+            <ul>
+                <li><a href="/health">Проверить здоровье сервера</a></li>
+                <li><a href="/test-payment/123/basic">Тестовый платеж</a></li>
+            </ul>
+
+            <p><strong>Статус:</strong> Сервер работает ✅</p>
+            <p><strong>Время запуска:</strong> {current_time}</p>
+        </div>
+    </body>
+    </html>
+    '''
+
+@app.route('/yookassa/webhook', methods=['GET', 'POST', 'PUT'])
 def yookassa_webhook():
     """Обработка webhook уведомлений от YooKassa"""
 
     try:
+        logger.info(f"Webhook received: Method={request.method}, URL={request.url}")
+        logger.info(f"Headers: {dict(request.headers)}")
+
         # Получаем данные от YooKassa
         data = request.get_json()
 
         if not data:
             logger.warning("No data received in webhook")
             return jsonify({'status': 'error', 'message': 'No data received'}), 400
+
+        logger.info(f"Webhook data: {data}")
 
         # Проверяем тип события
         event = data.get('event')
@@ -29,6 +98,25 @@ def yookassa_webhook():
         if event == 'payment.succeeded':
             # Платеж успешно завершен
             if process_webhook_payment_succeeded(data):
+                # Создаем временный экземпляр бота для отправки уведомления
+                try:
+                    import telebot
+                    temp_bot = telebot.TeleBot(API_TOKEN)
+
+                    # Получаем информацию о платеже из metadata
+                    metadata = data.get('object', {}).get('metadata', {})
+                    payment_id = metadata.get('payment_id')
+
+                    if payment_id:
+                        # Отправляем уведомление пользователю
+                        process_payment_success(temp_bot, payment_id)
+                        logger.info("Payment success notification sent to user")
+                    else:
+                        logger.warning("No payment_id in webhook metadata for user notification")
+
+                except Exception as e:
+                    logger.error(f"Error sending payment success notification: {e}")
+
                 logger.info("Payment succeeded webhook processed successfully")
                 return jsonify({'status': 'success'}), 200
             else:

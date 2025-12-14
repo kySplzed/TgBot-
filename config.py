@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # === TELEGRAM BOT ===
-API_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN', 'ВАШ_НАСТОЯЩИЙ_ТОКЕН_БОТА')
+API_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN', '8579553512:AAFd_9Rm2oxJV01BDkLlonXUXyzZ3aWfNQQ')
 
 # === YOOKASSA PAYMENT ===
 YOOKASSA_SHOP_ID = os.getenv('YOOKASSA_SHOP_ID', '1227929')

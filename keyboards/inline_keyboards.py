@@ -56,3 +56,19 @@ def get_success_keyboard():
     back_btn = types.InlineKeyboardButton("🏠 В главное меню", callback_data="back")
     markup.add(back_btn)
     return markup
+
+def get_status_keyboard():
+    """Клавиатура для статуса подписки"""
+    markup = types.InlineKeyboardMarkup(row_width=1)
+    delete_btn = types.InlineKeyboardButton("🗑️ Удалить подписку", callback_data="delete_subscription")
+    back_btn = types.InlineKeyboardButton("🏠 В главное меню", callback_data="back")
+    markup.add(delete_btn, back_btn)
+    return markup
+
+def get_delete_confirmation_keyboard():
+    """Клавиатура подтверждения удаления подписки"""
+    markup = types.InlineKeyboardMarkup(row_width=1)
+    confirm_btn = types.InlineKeyboardButton("✅ Подтверждаю удаление", callback_data="confirm_delete")
+    cancel_btn = types.InlineKeyboardButton("❌ Отмена", callback_data="cancel_delete")
+    markup.add(confirm_btn, cancel_btn)
+    return markup

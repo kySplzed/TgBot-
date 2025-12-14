@@ -1,6 +1,6 @@
 # services/user_service.py - бизнес-логика для работы с пользователями
 
-from db.database import get_or_create_user as db_get_or_create_user, get_statistics
+from db.database import get_or_create_user as db_get_or_create_user, get_statistics as db_get_statistics, get_user_subscription as db_get_user_subscription, save_user
 from db.models import User
 
 def get_or_create_user(user_id: int, username=None, first_name=None, last_name=None, language_code=None):
@@ -9,8 +9,7 @@ def get_or_create_user(user_id: int, username=None, first_name=None, last_name=N
 
 def get_user_info(user_id: int):
     """Получить информацию о пользователе"""
-    from db.database import get_user_subscription
-    subscription = get_user_subscription(user_id)
+    subscription = db_get_user_subscription(user_id)
     user = get_or_create_user(user_id)
     return {
         'user': user,
@@ -24,7 +23,6 @@ def update_user_info(user_id: int, **kwargs):
     for key, value in kwargs.items():
         if hasattr(user, key):
             setattr(user, key, value)
-    from db.database import save_user
     save_user(user)
 
 def is_admin(user_id: int):
@@ -35,4 +33,4 @@ def is_admin(user_id: int):
 
 def get_user_statistics():
     """Получить статистику по пользователям"""
-    return get_statistics()
+    return db_get_statistics()
