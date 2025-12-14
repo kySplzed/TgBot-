@@ -81,25 +81,27 @@ def yookassa_webhook():
     try:
         logger.info(f"Webhook received: Method={request.method}, URL={request.url}")
         logger.info(f"Headers: {dict(request.headers)}")
+        logger.info(f"Content-Type: {request.headers.get('Content-Type')}")
+        logger.info(f"Content-Length: {request.headers.get('Content-Length')}")
 
-        # Получаем данные от YooKassa с поддержкой разных Content-Type
-        content_type = request.headers.get('Content-Type', '').lower()
-
-        if 'application/json' in content_type:
+        # Получаем данные от YooKassa - всегда пробуем парсить как JSON
+        try:
+            # Сначала пробуем стандартный способ
             data = request.get_json()
-        else:
-            # Для других Content-Type пробуем получить как JSON или raw data
+        except Exception:
             try:
+                # Если не получилось, пробуем force parsing
                 data = request.get_json(force=True)
             except Exception:
-                # Если не JSON, получаем как текст и пытаемся распарсить
+                # Если и force не помог, получаем raw data
                 raw_data = request.get_data(as_text=True)
-                logger.info(f"Raw webhook data: {raw_data}")
+                logger.info(f"Raw webhook data (length: {len(raw_data)}): {raw_data[:500]}...")
                 try:
-                    import json
+                    # Пробуем распарсить как JSON
                     data = json.loads(raw_data)
-                except Exception:
-                    logger.error(f"Cannot parse webhook data: {raw_data}")
+                except Exception as e:
+                    logger.error(f"Cannot parse webhook data as JSON: {e}")
+                    logger.error(f"Raw data: {raw_data}")
                     return jsonify({'status': 'error', 'message': 'Cannot parse data'}), 400
 
         if not data:
