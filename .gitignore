@@ -46,6 +46,8 @@ bot.log
 
 # Database
 subscriptions.json
+users.json
+payments.json
 *.db
 *.sqlite
 

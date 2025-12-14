@@ -2,12 +2,16 @@
 
 import sys
 import telebot
-from config import API_TOKEN, DEBUG, ENVIRONMENT
+from config import API_TOKEN, DEBUG, ENVIRONMENT, WEBHOOK_HOST, WEBHOOK_PORT, WEBHOOK_PATH
 from handlers import setup_handlers
-from logger import setup_logging, get_logger
+from utils.logger import setup_logging, get_logger
+from db.database import init_database, check_expired_subscriptions
 
 def main():
     """Главная функция приложения"""
+
+    # Инициализируем базу данных
+    init_database()
 
     # Настраиваем логирование
     setup_logging()
@@ -32,10 +36,26 @@ def main():
         setup_handlers(bot)
         logger.info("✅ Обработчики настроены")
 
-        logger.info("🎯 Бот запущен и готов к работе!")
+        if ENVIRONMENT == 'production':
+            # Production mode - используем webhook
+            logger.info("🎯 Запуск в режиме webhook для production")
 
-        # Запускаем бота
-        bot.polling(none_stop=True, interval=1, timeout=30)
+            # Устанавливаем webhook
+            webhook_url = f"{WEBHOOK_HOST}{WEBHOOK_PATH}"
+            bot.set_webhook(url=webhook_url)
+            logger.info(f"✅ Webhook установлен: {webhook_url}")
+
+            # Запускаем Flask приложение для обработки webhook
+            from webhook import app
+            app.run(host='0.0.0.0', port=WEBHOOK_PORT, debug=DEBUG)
+
+        else:
+            # Development mode - используем polling
+            logger.info("🎯 Запуск в режиме polling для development")
+            logger.info("🎯 Бот запущен и готов к работе!")
+
+            # Запускаем бота
+            bot.polling(none_stop=True, interval=1, timeout=30)
 
     except KeyboardInterrupt:
         logger.info("🛑 Бот остановлен пользователем")
