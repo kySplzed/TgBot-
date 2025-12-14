@@ -23,7 +23,9 @@ WEBHOOK_PORT = int(os.getenv('WEBHOOK_PORT', '5000'))
 WEBHOOK_PATH = '/yookassa/webhook'
 
 # === DATABASE ===
+USERS_FILE = os.getenv('USERS_FILE', 'users.json')
 SUBSCRIPTIONS_FILE = os.getenv('SUBSCRIPTIONS_FILE', 'subscriptions.json')
+PAYMENTS_FILE = os.getenv('PAYMENTS_FILE', 'payments.json')
 
 # === PLANS CONFIGURATION ===
 PLANS = {
