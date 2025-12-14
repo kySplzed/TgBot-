@@ -82,8 +82,25 @@ def yookassa_webhook():
         logger.info(f"Webhook received: Method={request.method}, URL={request.url}")
         logger.info(f"Headers: {dict(request.headers)}")
 
-        # Получаем данные от YooKassa
-        data = request.get_json()
+        # Получаем данные от YooKassa с поддержкой разных Content-Type
+        content_type = request.headers.get('Content-Type', '').lower()
+
+        if 'application/json' in content_type:
+            data = request.get_json()
+        else:
+            # Для других Content-Type пробуем получить как JSON или raw data
+            try:
+                data = request.get_json(force=True)
+            except Exception:
+                # Если не JSON, получаем как текст и пытаемся распарсить
+                raw_data = request.get_data(as_text=True)
+                logger.info(f"Raw webhook data: {raw_data}")
+                try:
+                    import json
+                    data = json.loads(raw_data)
+                except Exception:
+                    logger.error(f"Cannot parse webhook data: {raw_data}")
+                    return jsonify({'status': 'error', 'message': 'Cannot parse data'}), 400
 
         if not data:
             logger.warning("No data received in webhook")
